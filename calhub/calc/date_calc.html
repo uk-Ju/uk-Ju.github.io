@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>날짜 계산기 — 설치 없이 바로 계산 | 모든계산기 CalHub</title>
+<meta name="description" content="두 날짜의 차이(디데이)와 며칠 뒤가 무슨 날짜인지 바로 계산. 웹에서 설치 없이 바로 계산하고, 앱에서는 플로팅 위젯·기록 저장까지 무료로.">
+<meta name="keywords" content="날짜 계산기, 날짜, 디데이, D-day, 기념일, 100일, 날짜 차이, 날짜 더하기, 날짜계산기">
+<link rel="canonical" href="https://uk-ju.github.io/calhub/calc/date_calc.html">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="모든계산기 CalHub">
+<meta property="og:title" content="날짜 계산기 — 설치 없이 바로 계산 | 모든계산기 CalHub">
+<meta property="og:description" content="두 날짜의 차이(디데이)와 며칠 뒤가 무슨 날짜인지 바로 계산. 웹에서 설치 없이 바로 계산하고, 앱에서는 플로팅 위젯·기록 저장까지 무료로.">
+<meta property="og:url" content="https://uk-ju.github.io/calhub/calc/date_calc.html">
+<meta property="og:image" content="https://uk-ju.github.io/calhub/assets/og-cover.png">
+<meta property="og:locale" content="ko_KR">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="날짜 계산기 — 설치 없이 바로 계산 | 모든계산기 CalHub">
+<meta name="twitter:description" content="두 날짜의 차이(디데이)와 며칠 뒤가 무슨 날짜인지 바로 계산. 웹에서 설치 없이 바로 계산하고, 앱에서는 플로팅 위젯·기록 저장까지 무료로.">
+<meta name="twitter:image" content="https://uk-ju.github.io/calhub/assets/og-cover.png">
+<link rel="icon" type="image/png" sizes="48x48" href="../assets/favicon-48.png">
+<link rel="apple-touch-icon" href="../assets/icon-192.png">
+<link rel="stylesheet" href="../assets/style.css">
+<script>window.CALHUB_PAGE={"base":"https://uk-ju.github.io/calhub","canonical":"https://uk-ju.github.io/calhub/calc/date_calc.html","playHome":"https://play.google.com/store/apps/details?id=com.calhub.app&referrer=utm_source%3Dcalhub_web%26utm_medium%3Dweb%26utm_campaign%3Dweb_landing%26utm_content%3Dhome"};</script>
+<script src="../config.js"></script>
+<script defer src="../assets/site.js"></script>
+<script defer src="../assets/calc.js"></script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"CalHub","item":"https://uk-ju.github.io/calhub/"},{"@type":"ListItem","position":2,"name":"날짜·단위"},{"@type":"ListItem","position":3,"name":"날짜 계산기","item":"https://uk-ju.github.io/calhub/calc/date_calc.html"}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"100일 기념일을 계산할 수 있나요?","acceptedAnswer":{"@type":"Answer","text":"네. 시작 날짜에 100일을 더하면 기념일 날짜와 요일이 바로 나옵니다. 당일을 1일로 셀지 여부도 선택할 수 있습니다."}},{"@type":"Question","name":"디데이 계산은 어떻게 하나요?","acceptedAnswer":{"@type":"Answer","text":"두 날짜를 달력에서 고르면 남은(지난) 일수가 바로 표시됩니다."}}]}</script>
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"MobileApplication","name":"날짜 계산기 — 모든계산기 CalHub","operatingSystem":"Android","applicationCategory":"UtilitiesApplication","offers":{"@type":"Offer","price":"0","priceCurrency":"KRW"},"installUrl":"https://play.google.com/store/apps/details?id=com.calhub.app&referrer=utm_source%3Dcalhub_web%26utm_medium%3Dweb%26utm_campaign%3Dweb_landing%26utm_content%3Dcalc_date_calc","description":"두 날짜의 차이(디데이)와 며칠 뒤가 무슨 날짜인지 바로 계산"}</script>
+</head>
+<body>
+<header class="site-header">
+  <div class="header-inner">
+    <a class="brand" href="../">
+      <img src="../assets/icon-192.png" alt="" width="34" height="34">
+      <span>CalHub</span>
+    </a>
+    <form class="search" role="search" action="../" data-search-form>
+      <input type="search" name="q" placeholder="계산기 검색 — 예: 대출, 환율, ㅁㅌㄱ" aria-label="계산기 검색" autocomplete="off" data-search-input>
+    </form>
+    <a class="btn btn-store btn-sm header-cta" href="https://play.google.com/store/apps/details?id=com.calhub.app&amp;referrer=utm_source%3Dcalhub_web%26utm_medium%3Dweb%26utm_campaign%3Dweb_landing%26utm_content%3Dheader" rel="noopener">앱 다운로드</a>
+  </div>
+</header>
+
+<div class="layout layout-article">
+  <aside class="rail rail-left"><div class="ad-slot ad-rail" data-ad-kind="rail" aria-label="광고"></div></aside>
+  <main class="content article">
+    <nav class="breadcrumb" aria-label="현재 위치">
+      <a href="../">CalHub</a> › <a href="../#cat-dateUnit">📅 날짜·단위</a> › <span>날짜 계산기</span>
+    </nav>
+    <h1>날짜 계산기</h1>
+    <p class="lead">두 날짜의 차이(디데이)와 며칠 뒤가 무슨 날짜인지 바로 계산. 아래에서 바로 계산해 보세요 — 앱에서는 플로팅 위젯·기록 저장까지 전부 무료입니다.</p>
+    <section class="calc-widget" id="calc">
+      <div class="cw" data-widget="date_calc"></div>
+      <noscript><p class="cw-empty">계산기를 쓰려면 자바스크립트를 켜 주세요.</p></noscript>
+    </section>
+    <div class="article-cta">
+      <a class="btn btn-store" href="https://play.google.com/store/apps/details?id=com.calhub.app&amp;referrer=utm_source%3Dcalhub_web%26utm_medium%3Dweb%26utm_campaign%3Dweb_landing%26utm_content%3Dcalc_date_calc" rel="noopener"><span class="btn-store-icon">▶</span> Google Play에서 날짜 계산기 열기</a>
+      <button class="btn btn-kakao" type="button" data-share="kakao">💬 카카오톡 공유</button>
+      <button class="btn btn-ghost" type="button" data-share="copy">🔗 링크 복사</button>
+    </div>
+    <div class="ad-slot ad-article" data-ad-kind="article" aria-label="광고"></div>
+    <section>
+      <h2>날짜 계산기는 이런 계산기입니다</h2>
+      <p>두 날짜 사이가 며칠인지(디데이·기념일), 그리고 오늘부터 100일 뒤가 무슨 날짜인지 계산합니다. 달력에서 날짜를 고르기만 하면 되고, 년·개월·일 단위 분해와 요일까지 함께 보여 줍니다.</p>
+      <ul class="feature-list">
+        <li>날짜 차이(디데이) · 날짜 더하기/빼기 두 모드</li>
+        <li>년·개월·일 분해와 요일 표시</li>
+        <li>당일 포함 여부 선택</li>
+        <li>달력 피커로 간편 입력</li>
+      </ul>
+    </section>
+    <section>
+      <h2>사용 방법</h2>
+      <ol class="howto">
+        <li><a href="https://play.google.com/store/apps/details?id=com.calhub.app&amp;referrer=utm_source%3Dcalhub_web%26utm_medium%3Dweb%26utm_campaign%3Dweb_landing%26utm_content%3Dcalc_date_calc_howto" rel="noopener">Google Play에서 CalHub</a>을 설치합니다 (무료).</li>
+        <li>홈 화면 검색창에 "날짜"를 입력하면 바로 나옵니다. 초성 검색도 됩니다.</li>
+        <li>값을 입력하는 즉시 결과가 계산됩니다 — 계산 버튼이 없습니다. 결과는 서랍에 저장해 두고 비교할 수 있습니다.</li>
+      </ol>
+    </section>
+    <section>
+      <h2>자주 묻는 질문</h2>
+      
+      <details class="faq">
+        <summary>100일 기념일을 계산할 수 있나요?</summary>
+        <p>네. 시작 날짜에 100일을 더하면 기념일 날짜와 요일이 바로 나옵니다. 당일을 1일로 셀지 여부도 선택할 수 있습니다.</p>
+      </details>
+      <details class="faq">
+        <summary>디데이 계산은 어떻게 하나요?</summary>
+        <p>두 날짜를 달력에서 고르면 남은(지난) 일수가 바로 표시됩니다.</p>
+      </details>
+    </section>
+    <div class="ad-slot ad-article" data-ad-kind="article" aria-label="광고"></div>
+    
+<section class="related">
+  <h2>함께 쓰는 계산기</h2>
+  <div class="card-grid">
+    
+    <a class="card" href="unit_converter.html">
+      <div class="card-head"><span class="card-emoji">📅</span><h3>단위 변환기</h3></div>
+      <p>길이·무게·넓이·부피·온도·데이터 단위를 서로 바꿔 계산 (평·돈 포함)</p>
+    </a>
+    <a class="card" href="time_calc.html">
+      <div class="card-head"><span class="card-emoji">📅</span><h3>시간 계산기</h3></div>
+      <p>12:34부터 17:23까지 몇 시간인지, 몇 시간 뒤가 몇 시인지 계산</p>
+    </a>
+  </div>
+</section>
+  </main>
+  <aside class="rail rail-right"><div class="ad-slot ad-rail" data-ad-kind="rail" aria-label="광고"></div></aside>
+</div>
+
+<section class="funnel" id="download">
+  <div class="funnel-inner">
+    <div class="funnel-text">
+      <h2>날짜 계산기를 앱으로</h2>
+      <p>계산기 23종 + 다른 앱 위에 띄우는 플로팅 위젯 + 계산 기록 서랍.<br>
+      광고를 보는 것 외에 어떤 결제도 필요 없는 무료 앱입니다.</p>
+      <div class="funnel-actions">
+        <a class="btn btn-store" href="https://play.google.com/store/apps/details?id=com.calhub.app&amp;referrer=utm_source%3Dcalhub_web%26utm_medium%3Dweb%26utm_campaign%3Dweb_landing%26utm_content%3Dcalc_date_calc" rel="noopener">
+          <span class="btn-store-icon">▶</span> Google Play에서 다운로드
+        </a>
+        <button class="btn btn-kakao" type="button" data-share="kakao">💬 카카오톡으로 공유</button>
+        <button class="btn btn-ghost" type="button" data-share="copy">🔗 링크 복사</button>
+        <button class="btn btn-ghost" type="button" data-share="native">📤 공유하기</button>
+      </div>
+    </div>
+    <figure class="funnel-qr">
+      <img src="../assets/qr-playstore.svg" alt="CalHub 앱 설치 QR 코드" width="164" height="164" loading="lazy">
+      <figcaption>휴대폰 카메라로 QR을 찍으면<br>바로 설치 페이지로 이동합니다</figcaption>
+    </figure>
+  </div>
+</section>
+<footer class="site-footer">
+  <div class="footer-inner">
+    <p><strong>모든계산기 CalHub</strong> — 계산기 23종을 하나의 앱에. 물타기·대출·예적금·환율·퍼센트까지 전부 무료.</p>
+    <p>
+      <a href="https://play.google.com/store/apps/details?id=com.calhub.app&amp;referrer=utm_source%3Dcalhub_web%26utm_medium%3Dweb%26utm_campaign%3Dweb_landing%26utm_content%3Dfooter" rel="noopener">Google Play</a> ·
+      <a href="../">전체 계산기</a> ·
+      <a href="mailto:wngusdnr1231@gmail.com">문의</a>
+    </p>
+    <p class="footer-fine">© 2026 CalHub. Google Play 및 Google Play 로고는 Google LLC의 상표입니다.</p>
+  </div>
+</footer>
+</body>
+</html>
