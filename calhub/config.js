@@ -23,7 +23,8 @@
  *                 셋 다 만들 필요는 없다 — wide나 mobile 하나만 넣어도 양쪽에 그것을 쓴다.
  */
 window.CALHUB_CONFIG = {
-  kakaoJsKey: '',
+  // JS 키는 클라이언트에 노출되는 공개 값이다(비밀키 아님) — 보호는 위 플랫폼 도메인 등록이 한다.
+  kakaoJsKey: '7cf9d61965a963abbfcb5dbf0122bc14',
 
   adsenseClient: '',
   adsenseSlots: {
