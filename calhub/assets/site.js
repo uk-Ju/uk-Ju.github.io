@@ -90,22 +90,28 @@
     if (q) { input.value = q; apply(q); }
   }
 
-  /* ── 광고 슬롯 (AdSense) ─────────────────────────────────────────────── */
+  /* ── 광고 슬롯 ────────────────────────────────────────────────────────
+   * 광고망 두 곳을 지원한다 (config.js에 채운 쪽이 쓰인다):
+   *   1순위 AdSense  — 단가가 높지만 신규 사이트는 심사에서 떨어질 수 있다
+   *   2순위 카카오 애드핏 — 국내 광고망, 심사가 수월해 AdSense 대기/탈락 시 대안
+   * 둘 다 비어 있으면 자리 표시('AD')만 그려 레이아웃을 확인할 수 있게 둔다.
+   */
   function initAds() {
     var slots = Array.prototype.slice.call(document.querySelectorAll('.ad-slot'));
     if (!slots.length) return;
-    var client = CFG.adsenseClient;
 
-    if (!client) {
-      slots.forEach(function (slot) {
-        var ph = document.createElement('div');
-        ph.className = 'ad-placeholder';
-        ph.textContent = 'AD';
-        slot.appendChild(ph);
-      });
-      return;
-    }
+    if (CFG.adsenseClient) { initAdSense(slots, CFG.adsenseClient); return; }
+    if (hasAdfitUnit()) { initAdfit(slots); return; }
 
+    slots.forEach(function (slot) {
+      var ph = document.createElement('div');
+      ph.className = 'ad-placeholder';
+      ph.textContent = 'AD';
+      slot.appendChild(ph);
+    });
+  }
+
+  function initAdSense(slots, client) {
     var s = document.createElement('script');
     s.async = true;
     s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=' + encodeURIComponent(client);
@@ -129,6 +135,49 @@
       slot.appendChild(ins);
       (window.adsbygoogle = window.adsbygoogle || []).push({});
     });
+  }
+
+  /* 애드핏은 반응형이 없어 크기별로 광고 단위를 따로 만든다.
+   * rail = 160×600(좁은 화면에선 레일 자체가 숨는다) · 가로 자리는 폭에 따라 728×90 / 320×100. */
+  var ADFIT_SIZES = {
+    rail: [160, 600],
+    wide: [728, 90],
+    mobile: [320, 100],
+  };
+  function adfitUnitFor(kind) {
+    var units = CFG.adfitUnits || {};
+    if (kind === 'rail') return { id: units.rail, size: ADFIT_SIZES.rail };
+    var narrow = window.innerWidth < 800;
+    var id = narrow ? (units.mobile || units.wide) : (units.wide || units.mobile);
+    var size = narrow
+      ? (units.mobile ? ADFIT_SIZES.mobile : ADFIT_SIZES.wide)
+      : (units.wide ? ADFIT_SIZES.wide : ADFIT_SIZES.mobile);
+    return { id: id, size: size };
+  }
+  function hasAdfitUnit() {
+    var u = CFG.adfitUnits || {};
+    return !!(u.rail || u.wide || u.mobile);
+  }
+  function initAdfit(slots) {
+    var used = false;
+    slots.forEach(function (slot) {
+      var kind = slot.getAttribute('data-ad-kind') || 'article';
+      var unit = adfitUnitFor(kind);
+      if (!unit.id) { slot.style.display = 'none'; return; }
+      var ins = document.createElement('ins');
+      ins.className = 'kakao_ad_area';
+      ins.style.display = 'none';
+      ins.setAttribute('data-ad-unit', unit.id);
+      ins.setAttribute('data-ad-width', String(unit.size[0]));
+      ins.setAttribute('data-ad-height', String(unit.size[1]));
+      slot.appendChild(ins);
+      used = true;
+    });
+    if (!used) return;
+    var s = document.createElement('script');
+    s.async = true;
+    s.src = 'https://t1.daumcdn.net/kas/static/ba.min.js';
+    document.head.appendChild(s);
   }
 
   /* ── 토스트 ──────────────────────────────────────────────────────────── */
