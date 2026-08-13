@@ -253,6 +253,9 @@
 
   function kakaoShare() {
     ensureKakao().then(function (Kakao) {
+      // ⚠️ 링크는 **버튼까지 전부 등록된 사이트 도메인**이어야 한다 —
+      // 스토어 주소를 직접 넣으면 카카오가 공유를 거부하므로 우리 도메인의 중계 페이지를 쓴다.
+      var install = PAGE.appRedirect || pageUrl();
       Kakao.Share.sendDefault({
         objectType: 'feed',
         content: {
@@ -264,7 +267,7 @@
         buttons: [
           {
             title: '앱 무료 다운로드',
-            link: { mobileWebUrl: PAGE.playHome, webUrl: PAGE.playHome },
+            link: { mobileWebUrl: install, webUrl: install },
           },
           {
             title: '웹에서 보기',
