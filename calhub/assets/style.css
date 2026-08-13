@@ -179,16 +179,21 @@ img { max-width: 100%; }
 .search-status { color: var(--text-dim); margin: 0 0 18px; }
 
 /* ── 광고 슬롯 ────────────────────────── */
+/* ⚠️ 슬롯 자체에는 높이를 주지 않는다 — 광고 재고가 없을 때(no fill) 빈 회색 박스가
+   남지 않고 자리가 접혀야 한다. 높이는 광고가 실제로 채워질 때 안쪽 요소가 만든다. */
 .ad-slot { display: flex; align-items: center; justify-content: center; overflow: hidden; }
-.ad-slot.ad-rail { width: 160px; min-height: 600px; }
-.ad-slot.ad-infeed { min-height: 110px; margin: 26px 0; }
-.ad-slot.ad-article { min-height: 110px; margin: 26px 0; }
+.ad-slot.ad-rail { width: 160px; }
+.ad-slot.ad-infeed, .ad-slot.ad-article { margin: 26px 0; }
+/* 자리 표시(광고망 미설정 상태)일 때만 높이를 준다 — 레이아웃 확인용 */
 .ad-slot .ad-placeholder {
-  width: 100%; height: 100%; min-height: inherit;
+  width: 100%;
   display: flex; align-items: center; justify-content: center;
   border: 1px dashed var(--line); border-radius: 10px;
   color: #4c5578; font-size: .8rem; letter-spacing: .08em;
 }
+.ad-slot.ad-rail .ad-placeholder { min-height: 600px; }
+.ad-slot.ad-infeed .ad-placeholder,
+.ad-slot.ad-article .ad-placeholder { min-height: 110px; }
 .ad-slot ins.adsbygoogle { display: block; width: 100%; }
 
 /* ── 계산기 상세 페이지 ───────────────── */

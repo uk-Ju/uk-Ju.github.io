@@ -33,9 +33,10 @@ window.CALHUB_CONFIG = {
     article: '',
   },
 
+  // 매체 '모든계산기 CalHub'(uk-ju.github.io/calhub)의 광고단위 — 2026-08-13 등록
   adfitUnits: {
-    rail: '',
-    wide: '',
-    mobile: '',
+    rail: 'DAN-ljoMhdI8YxWc8KqZ',    // calhub-rail   160×600 PC 좌우 세로
+    wide: 'DAN-aFqo9YyE0J7JUffL',    // calhub-wide   728×90  PC 가로
+    mobile: 'DAN-CsXylupIOSaJvt2q',  // calhub-mobile 320×100 모바일 띠
   },
 };
