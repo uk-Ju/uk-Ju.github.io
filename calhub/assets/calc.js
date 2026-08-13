@@ -56,6 +56,10 @@
   /* ── 공용 렌더러 ───────────────────────────────────────────
    * spec.fields: [{k, label(문자열 또는 v=>문자열), type:'num'|'int'|'sel'|'date'|'time'|'chk',
    *               opts:[[값,라벨]], def, ph, suffix, span2}]
+   *   ⚠️ **필드 순서 = 열 배치**다. 서로 대응하는 줄(보유/추가 매수, 첫 분수/둘째 분수,
+   *   상품 A/B)은 **같은 열에 같은 성격의 값**이 오도록 순서를 맞춘다 — 1열이 단가인데
+   *   아랫줄 1열이 수량이면 눈이 열을 따라 읽지 못한다 (2026-08-12 사용자 지적).
+   * spec.cols: 열 수 (기본 2). 분수처럼 한 묶음이 세 칸인 경우 3.
    * spec.compute(v): null(입력 부족) 또는 [{label, value, hero, dim}] 행 목록
    * spec.custom(host, api): 완전 커스텀 위젯이면 이걸 대신 정의
    */
@@ -64,7 +68,7 @@
     var values = {};
     spec.fields.forEach(function (f) { values[f.k] = f.def != null ? String(f.def) : ''; });
 
-    var form = el('div', 'cw-form');
+    var form = el('div', 'cw-form' + (spec.cols === 3 ? ' cw-cols-3' : ''));
     var result = el('div', 'cw-result');
     var labelEls = {};
 
@@ -378,11 +382,11 @@
   /* ══ 계산기 정의 ═══════════════════════════════════════════ */
   var WIDGETS = {};
 
-  /* 물타기 */
+  /* 물타기 — 1열 = 단가, 2열 = 수량 (보유 줄과 추가 매수 줄이 열로 대응한다) */
   WIDGETS.single = {
     fields: [
-      { k: 'qty', label: '보유 수량', type: 'num', ph: '예: 100' },
       { k: 'avg', label: '보유 평균 단가', type: 'num', ph: '예: 50,000' },
+      { k: 'qty', label: '보유 수량', type: 'num', ph: '예: 100' },
       { k: 'price', label: '추가 매수 단가', type: 'num', ph: '예: 40,000' },
       { k: 'add', label: '추가 매수 수량', type: 'num', ph: '예: 100' },
     ],
@@ -484,14 +488,14 @@
     },
   };
 
-  /* 대출 */
+  /* 대출 — 2행은 개월 칸끼리(기간·거치기간) 나란히 둔다 */
   WIDGETS.loan = {
     fields: [
       { k: 'p', label: '대출 원금 (원)', type: 'num', ph: '예: 350,000,000', span2: true },
       { k: 'r', label: '연이율 (%)', type: 'num', ph: '예: 1.7' },
+      { k: 'm', label: '상환 방식', type: 'sel', def: 'annuity', opts: [['annuity', '원리금균등'], ['principal', '원금균등'], ['bullet', '만기일시']] },
       { k: 'n', label: '기간 (개월)', type: 'num', ph: '예: 360' },
       { k: 'g', label: '거치기간 (개월)', type: 'num', ph: '0' },
-      { k: 'm', label: '상환 방식', type: 'sel', def: 'annuity', opts: [['annuity', '원리금균등'], ['principal', '원금균등'], ['bullet', '만기일시']] },
     ],
     compute: function (v) {
       var P = toNum(v.p), r = toNum(v.r), n = toInt(v.n), g = toInt(v.g) || 0;
@@ -559,14 +563,14 @@
     compute: depositCompute(true),
   };
 
-  /* 자동차 대출 */
+  /* 자동차 대출 — 금액 줄 / 숫자 줄 / 선택 줄로 성격을 맞춘다 */
   WIDGETS.car_loan = {
     fields: [
-      { k: 'price', label: '차량 가격 (원)', type: 'num', ph: '예: 30,000,000', span2: true },
+      { k: 'price', label: '차량 가격 (원)', type: 'num', ph: '예: 30,000,000' },
       { k: 'down', label: '선수금 (원)', type: 'num', ph: '0' },
-      { k: 'car', label: '차종 (취득세)', type: 'sel', def: '7', opts: [['7', '승용 7%'], ['4', '경차 4%'], ['5', '승합·화물 5%']] },
       { k: 'r', label: '할부 연이율 (%)', type: 'num', ph: '예: 5.5' },
       { k: 'n', label: '할부 기간 (개월)', type: 'num', ph: '예: 36' },
+      { k: 'car', label: '차종 (취득세)', type: 'sel', def: '7', span2: true, opts: [['7', '승용 7%'], ['4', '경차 4%'], ['5', '승합·화물 5%']] },
     ],
     compute: function (v) {
       var price = toNum(v.price), down = toNum(v.down) || 0, r = toNum(v.r), n = toInt(v.n);
@@ -616,7 +620,7 @@
     fields: [
       { k: 'dist', label: '주행거리 (km)', type: 'num', ph: '예: 420' },
       { k: 'liters', label: '주유량 (L)', type: 'num', ph: '예: 32' },
-      { k: 'price', label: '유가 (원/L, 선택)', type: 'num', ph: '예: 1,650' },
+      { k: 'price', label: '유가 (원/L, 선택)', type: 'num', ph: '예: 1,650', span2: true },
     ],
     compute: function (v) {
       var dist = toNum(v.dist), l = toNum(v.liters), p = toNum(v.price);
@@ -684,7 +688,7 @@
   /* 할인 */
   WIDGETS.discount = {
     fields: [
-      { k: 'price', label: '원래 가격 (원)', type: 'num', ph: '예: 59,000' },
+      { k: 'price', label: '원래 가격 (원)', type: 'num', ph: '예: 59,000', span2: true },
       { k: 'r1', label: '할인율 (%)', type: 'num', ph: '예: 20' },
       { k: 'r2', label: '추가 할인율 (%, 선택)', type: 'num', ph: '예: 10' },
     ],
@@ -948,13 +952,15 @@
     },
   };
 
-  /* 분수 */
+  /* 분수 — 한 분수가 세 칸이라 3열. 첫 분수 줄과 둘째 분수 줄이 열로 정확히 대응한다
+   * (2열 격자에 넣으면 ①분모와 연산이 한 줄에 서고 ②가 밀려 열이 어긋난다) */
   WIDGETS.fraction = {
+    cols: 3,
     fields: [
       { k: 'ai', label: '① 정수', type: 'num', comma: false, ph: '0' },
       { k: 'an', label: '① 분자', type: 'num', comma: false, ph: '1' },
       { k: 'ad', label: '① 분모', type: 'num', comma: false, ph: '2' },
-      { k: 'op', label: '연산', type: 'sel', def: '+', opts: [['+', '＋ 더하기'], ['-', '－ 빼기'], ['*', '× 곱하기'], ['/', '÷ 나누기']] },
+      { k: 'op', label: '연산', type: 'sel', def: '+', span2: true, opts: [['+', '＋ 더하기'], ['-', '－ 빼기'], ['*', '× 곱하기'], ['/', '÷ 나누기']] },
       { k: 'bi', label: '② 정수', type: 'num', comma: false, ph: '0' },
       { k: 'bn', label: '② 분자', type: 'num', comma: false, ph: '1' },
       { k: 'bd', label: '② 분모', type: 'num', comma: false, ph: '3' },

@@ -73,13 +73,28 @@ img { max-width: 100%; }
 .hero-text h1 { font-size: clamp(1.7rem, 4vw, 2.6rem); line-height: 1.25; margin: 0 0 16px; }
 .hero-text h1 em { font-style: normal; color: var(--accent); }
 .hero-text p { color: var(--text-dim); font-size: 1.05rem; max-width: 34em; }
-.hero-actions { display: flex; gap: 12px; margin-top: 24px; flex-wrap: wrap; }
+.hero-cta { display: flex; align-items: center; gap: 20px; margin-top: 24px; flex-wrap: wrap; }
+.hero-actions { display: flex; gap: 12px; flex-wrap: wrap; }
 .hero-shots { flex: 0 1 460px; display: flex; gap: 14px; justify-content: center; }
 .hero-shots img {
   width: 31%; max-width: 150px; border-radius: 18px;
   border: 1px solid var(--line); box-shadow: 0 18px 40px rgba(0, 0, 0, .45);
 }
 .hero-shots img:nth-child(2) { transform: translateY(16px); }
+
+/* ── 설치 QR (화면 위쪽 고정 배치) ─────────
+   폰에서는 숨긴다 — 찍을 기기가 없고 스토어 버튼이 곧 설치다 */
+.qr-card {
+  margin: 0; flex-shrink: 0; text-align: center;
+  background: #fff; border-radius: 14px; padding: 12px 12px 8px;
+  box-shadow: 0 10px 26px rgba(0, 0, 0, .35);
+}
+.qr-card img { display: block; margin: 0 auto; width: 118px; height: 118px; }
+.qr-card figcaption { color: #333; font-size: .72rem; line-height: 1.45; margin-top: 6px; font-weight: 700; }
+
+/* 계산기 페이지 머리말 — 제목·설명 왼쪽, QR 오른쪽 */
+.article-head { display: flex; align-items: flex-start; gap: 22px; }
+.article-head-text { flex: 1 1 auto; min-width: 0; }
 
 /* ── 계산기 바로가기 칩 ───────────────── */
 .quick-nav { flex: 1 1 100%; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 26px; }
@@ -96,8 +111,9 @@ img { max-width: 100%; }
   padding: 18px; margin: 4px 0 22px;
 }
 .cw-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; }
+.cw-form.cw-cols-3 { grid-template-columns: repeat(3, 1fr); }  /* 분수 — 정수·분자·분모 */
 .cw-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
-.cw-span2 { grid-column: 1 / -1; }
+.cw-span2 { grid-column: 1 / -1; }   /* 열 수와 무관하게 한 줄 전체 */
 .cw-label { font-size: .82rem; color: var(--text-dim); }
 .cw-field input, .cw-field select {
   width: 100%; padding: 10px 12px; font-size: 1rem;
@@ -204,12 +220,7 @@ img { max-width: 100%; }
 .funnel-text h2 { font-size: 1.5rem; margin: 0 0 10px; }
 .funnel-text p { color: var(--text-dim); }
 .funnel-actions { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px; }
-.funnel-qr {
-  margin: 0; background: #fff; border-radius: 16px; padding: 18px 18px 12px;
-  text-align: center; flex-shrink: 0; box-shadow: 0 14px 34px rgba(0, 0, 0, .4);
-}
-.funnel-qr img { display: block; margin: 0 auto; }
-.funnel-qr figcaption { color: #444; font-size: .78rem; line-height: 1.5; margin-top: 8px; }
+/* QR은 이 섹션(페이지 맨 아래)이 아니라 화면 위쪽 `.qr-card`가 맡는다 — 2026-08-12 */
 
 /* ── 푸터 ─────────────────────────────── */
 .site-footer { border-top: 1px solid var(--line); margin-top: 0; }
@@ -234,10 +245,17 @@ img { max-width: 100%; }
 @media (max-width: 720px) {
   .header-cta { display: none; }
   .cw-form { grid-template-columns: 1fr; }
+  /* 분수는 좁은 화면에서도 3열을 유지한다 — 세로로 쌓으면 어느 칸이 한 분수인지 안 보인다.
+     대신 여백·글자를 줄여 360dp에 들어가게 한다 */
+  .cw-form.cw-cols-3 { gap: 10px 8px; }
+  .cw-form.cw-cols-3 .cw-field input,
+  .cw-form.cw-cols-3 .cw-field select { padding: 10px 8px; font-size: .95rem; }
+  .cw-form.cw-cols-3 .cw-label { font-size: .76rem; }
   .cw-stage { grid-template-columns: auto 1fr 1fr auto; }
   .hero-inner { padding: 36px 18px 28px; }
   .hero-shots { display: none; }
-  .funnel-qr { display: none; }  /* 휴대폰에서는 QR 대신 스토어 버튼이 곧 설치 */
+  .qr-card { display: none; }    /* 휴대폰에서는 QR 대신 스토어 버튼이 곧 설치 */
+  .article-head { display: block; }
   .btn { width: 100%; }
   .article-cta .btn, .funnel-actions .btn { width: 100%; }
 }
