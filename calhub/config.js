@@ -39,19 +39,19 @@ window.CALHUB_CONFIG = {
   },
 
   // 매체 '모든계산기 CalHub'(uk-ju.github.io/calhub) — 2026-08-13 등록, 08-14 승인
-  // 두 번째 ID를 채우면 우측 레일·두 번째 가로 자리에도 광고가 붙는다(빈 칸은 자리를 접는다).
+  // 자리가 늘면 여기에 ID를 더 넣는다. 빈 자리는 조용히 접히므로 개수가 안 맞아도 안전하다.
   adfitUnits: {
     rail: [
-      'DAN-ljoMhdI8YxWc8KqZ',   // calhub-rail    160×600 좌측
-      '',                        // calhub-rail-2  160×600 우측  ← 생성 후 입력
+      'DAN-ljoMhdI8YxWc8KqZ',   // calhub-rail     160×600 좌측
+      'DAN-bsmY4a82rsq1ozyn',   // calhub-rail-2   160×600 우측
     ],
     wide: [
-      'DAN-aFqo9YyE0J7JUffL',   // calhub-wide    728×90  첫 번째 가로 자리
-      '',                        // calhub-wide-2  728×90  두 번째 가로 자리 ← 생성 후 입력
+      'DAN-aFqo9YyE0J7JUffL',   // calhub-wide     728×90  첫 번째 가로 자리
+      'DAN-7M7nfNW6DyX28ToP',   // calhub-wide-2   728×90  두 번째 가로 자리
     ],
     mobile: [
       'DAN-CsXylupIOSaJvt2q',   // calhub-mobile   320×100 첫 번째 (좁은 화면)
-      '',                        // calhub-mobile-2 320×100 두 번째 ← 생성 후 입력
+      'DAN-aGb1bzxDWk5nZfwt',   // calhub-mobile-2 320×100 두 번째
     ],
   },
 };
