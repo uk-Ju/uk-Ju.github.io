@@ -138,38 +138,53 @@
   }
 
   /* 애드핏은 반응형이 없어 크기별로 광고 단위를 따로 만든다.
-   * rail = 160×600(좁은 화면에선 레일 자체가 숨는다) · 가로 자리는 폭에 따라 728×90 / 320×100. */
+   * rail = 160×600(좁은 화면에선 레일 자체가 숨는다) · 가로 자리는 폭에 따라 728×90 / 320×100.
+   *
+   * ⚠️ **같은 광고단위 ID는 한 페이지에 한 번만 렌더링된다** (2026-08-14 실측 —
+   * 홈 7개 슬롯 중 각 ID의 첫 등장 2개만 채워지고 나머지는 빈 채로 남았다).
+   * 그래서 config의 각 항목은 **배열**로 받아 자리마다 다른 ID를 쓴다.
+   * ID가 모자라면 그 자리는 아예 만들지 않는다 — 채워지지도 않을 요청을 보내지 않는다. */
   var ADFIT_SIZES = {
     rail: [160, 600],
     wide: [728, 90],
     mobile: [320, 100],
   };
-  function adfitUnitFor(kind) {
-    var units = CFG.adfitUnits || {};
-    if (kind === 'rail') return { id: units.rail, size: ADFIT_SIZES.rail };
-    var narrow = window.innerWidth < 800;
-    var id = narrow ? (units.mobile || units.wide) : (units.wide || units.mobile);
-    var size = narrow
-      ? (units.mobile ? ADFIT_SIZES.mobile : ADFIT_SIZES.wide)
-      : (units.wide ? ADFIT_SIZES.wide : ADFIT_SIZES.mobile);
-    return { id: id, size: size };
+  function unitList(v) {
+    if (!v) return [];
+    return (Array.isArray(v) ? v : [v]).filter(Boolean);
   }
   function hasAdfitUnit() {
     var u = CFG.adfitUnits || {};
-    return !!(u.rail || u.wide || u.mobile);
+    return unitList(u.rail).length + unitList(u.wide).length + unitList(u.mobile).length > 0;
   }
   function initAdfit(slots) {
+    var u = CFG.adfitUnits || {};
+    var narrow = window.innerWidth < 800;
+    // 가로 자리는 화면 폭에 맞는 목록을 쓰고, 그쪽이 비어 있으면 다른 쪽으로 대체한다.
+    var horizList = narrow
+      ? (unitList(u.mobile).length ? unitList(u.mobile) : unitList(u.wide))
+      : (unitList(u.wide).length ? unitList(u.wide) : unitList(u.mobile));
+    var horizSize = narrow
+      ? (unitList(u.mobile).length ? ADFIT_SIZES.mobile : ADFIT_SIZES.wide)
+      : (unitList(u.wide).length ? ADFIT_SIZES.wide : ADFIT_SIZES.mobile);
+    var pools = {
+      rail: { ids: unitList(u.rail), size: ADFIT_SIZES.rail, next: 0 },
+      horiz: { ids: horizList, size: horizSize, next: 0 },
+    };
+
     var used = false;
     slots.forEach(function (slot) {
       var kind = slot.getAttribute('data-ad-kind') || 'article';
-      var unit = adfitUnitFor(kind);
-      if (!unit.id) { slot.style.display = 'none'; return; }
+      var pool = pools[kind === 'rail' ? 'rail' : 'horiz'];
+      var id = pool.ids[pool.next];
+      if (!id) { slot.style.display = 'none'; return; }   // 남은 ID 없음 → 자리를 접는다
+      pool.next += 1;
       var ins = document.createElement('ins');
       ins.className = 'kakao_ad_area';
       ins.style.display = 'none';
-      ins.setAttribute('data-ad-unit', unit.id);
-      ins.setAttribute('data-ad-width', String(unit.size[0]));
-      ins.setAttribute('data-ad-height', String(unit.size[1]));
+      ins.setAttribute('data-ad-unit', id);
+      ins.setAttribute('data-ad-width', String(pool.size[0]));
+      ins.setAttribute('data-ad-height', String(pool.size[1]));
       slot.appendChild(ins);
       used = true;
     });

@@ -20,7 +20,12 @@
  *                   rail   = 160×600 (좌우 레일)
  *                   wide   = 728×90  (넓은 화면의 가로 자리)
  *                   mobile = 320×100 (좁은 화면의 가로 자리)
- *                 셋 다 만들 필요는 없다 — wide나 mobile 하나만 넣어도 양쪽에 그것을 쓴다.
+ *
+ *                 ⚠️ **같은 ID는 한 페이지에 한 번만 노출된다**(2026-08-14 실측).
+ *                 자리가 둘이면 ID도 둘이어야 하므로 **배열**로 적는다. 한 페이지의
+ *                 그 종류 n번째 자리가 배열의 n번째 ID를 쓰고, ID가 모자라면 그 자리는
+ *                 아예 만들지 않는다(빈 박스가 남지 않는다).
+ *                 현재 페이지당 자리 수: rail 2(좌·우) · 가로 2(목록 사이 또는 본문).
  */
 window.CALHUB_CONFIG = {
   // JS 키는 클라이언트에 노출되는 공개 값이다(비밀키 아님) — 보호는 위 플랫폼 도메인 등록이 한다.
@@ -33,10 +38,20 @@ window.CALHUB_CONFIG = {
     article: '',
   },
 
-  // 매체 '모든계산기 CalHub'(uk-ju.github.io/calhub)의 광고단위 — 2026-08-13 등록
+  // 매체 '모든계산기 CalHub'(uk-ju.github.io/calhub) — 2026-08-13 등록, 08-14 승인
+  // 두 번째 ID를 채우면 우측 레일·두 번째 가로 자리에도 광고가 붙는다(빈 칸은 자리를 접는다).
   adfitUnits: {
-    rail: 'DAN-ljoMhdI8YxWc8KqZ',    // calhub-rail   160×600 PC 좌우 세로
-    wide: 'DAN-aFqo9YyE0J7JUffL',    // calhub-wide   728×90  PC 가로
-    mobile: 'DAN-CsXylupIOSaJvt2q',  // calhub-mobile 320×100 모바일 띠
+    rail: [
+      'DAN-ljoMhdI8YxWc8KqZ',   // calhub-rail    160×600 좌측
+      '',                        // calhub-rail-2  160×600 우측  ← 생성 후 입력
+    ],
+    wide: [
+      'DAN-aFqo9YyE0J7JUffL',   // calhub-wide    728×90  첫 번째 가로 자리
+      '',                        // calhub-wide-2  728×90  두 번째 가로 자리 ← 생성 후 입력
+    ],
+    mobile: [
+      'DAN-CsXylupIOSaJvt2q',   // calhub-mobile   320×100 첫 번째 (좁은 화면)
+      '',                        // calhub-mobile-2 320×100 두 번째 ← 생성 후 입력
+    ],
   },
 };
