@@ -661,6 +661,117 @@
     },
   };
 
+  /* 연봉 실수령액 — 4대보험 + 근로소득세(간이세액표)
+   *
+   * 표는 `assets/tax-2026.js`가 실어 주고 **이 페이지에서만** 불러온다(29KB).
+   * 앱(`core/calc/net_pay_calc.dart`)과 **같은 순서·같은 반올림**이라야 값이 같다:
+   * 보험료는 항목마다 10원 미만 절사한 뒤 더하고, 국민연금만 기준소득월액
+   * (천원 절사 + 상·하한)을 따로 쓴다.
+   *
+   * ⚠️ 비율 곱은 전부 **정수비**로 편다 — `taxable * 0.03595`는 부동소수 오차로
+   * 절사 경계에서 10원이 튄다. 원 단위 정수 × 정수는 안전 범위 안이다. */
+  var NP = {
+    pensionPct: [475, 10000],      // 4.75%
+    healthPct: [3595, 100000],     // 3.595%
+    carePct: [1314, 10000],        // 건강보험료의 13.14%
+    empPct: [9, 1000],             // 0.9%
+    stabilityPct: [25, 10000],     // 고용안정 0.25% (150인 미만 · 회사 부담)
+    pensionFloor: 410000,
+    pensionCap: 6590000,
+  };
+  function floor10(n) { return Math.floor(n / 10) * 10; }
+  function rate(won, p) { return floor10(won * p[0] / p[1]); }
+
+  /* 간이세액표 조회 — 표 밖(77만 미만)은 0, 1,000만 초과는 고시 산식. */
+  function withholdingTax(taxable, fam, kids) {
+    var T = window.CALHUB_TAX_2026;
+    if (!T || taxable < T.floor) return 0;
+    fam = Math.max(1, fam);
+
+    function cell(f) {
+      if (taxable > T.ceiling) {
+        var base = T.atCeiling[f - 1], over = taxable - T.ceiling, add;
+        if (taxable <= 14000000) add = Math.floor(over * 343 / 1000) + 25000;
+        else if (taxable <= 28000000) add = 1397000 + Math.floor((taxable - 14000000) * 3724 / 10000);
+        else if (taxable <= 30000000) add = 6610600 + Math.floor((taxable - 28000000) * 392 / 1000);
+        else if (taxable <= 45000000) add = 7394600 + Math.floor((taxable - 30000000) * 40 / 100);
+        else if (taxable <= 87000000) add = 13394600 + Math.floor((taxable - 45000000) * 42 / 100);
+        else add = 31034600 + Math.floor((taxable - 87000000) * 45 / 100);
+        return floor10(base + add);
+      }
+      if (taxable === T.ceiling) return T.atCeiling[f - 1];
+      // 행 번호는 산술로 — 구간 폭이 5·10·20천원이라 경계값을 싣지 않아도 된다.
+      var t = Math.floor(taxable / 1000), row;
+      if (t < 1500) row = Math.floor((t - 770) / 5);
+      else if (t < 3000) row = 146 + Math.floor((t - 1500) / 10);
+      else row = 296 + Math.floor((t - 3000) / 20);
+      var at = row * 44 + (f - 1) * 4;
+      return parseInt(T.packed.substr(at, 4), 36) * 10;
+    }
+
+    var tax;
+    if (fam <= 11) tax = cell(fam);
+    else tax = cell(11) - (cell(10) - cell(11)) * (fam - 11); // 별표2 비고 4
+    // 8세 이상 20세 이하 자녀 세액공제 (비고 3) — 음수면 0.
+    if (kids === 1) tax -= 20830;
+    else if (kids >= 2) tax -= 45830 + (kids - 2) * 33330;
+    return tax < 0 ? 0 : tax;
+  }
+
+  WIDGETS.net_pay = {
+    fields: [
+      { k: 'basis', label: '급여 기준', type: 'sel', def: 'year', opts: [['year', '연봉'], ['month', '월급']] },
+      { k: 'sev', label: '퇴직금', type: 'sel', def: 'apart', opts: [['apart', '별도'], ['within', '포함 (÷13)']], showIf: function (v) { return v.basis === 'year'; } },
+      { k: 'amt', label: function (v) { return (v.basis === 'month' ? '월급' : '연봉') + ' (원)'; }, type: 'num', ph: '예: 50,000,000', span2: true },
+      { k: 'fam', label: '부양 가족 수 (본인 포함)', type: 'int', def: '1' },
+      { k: 'kid', label: '8세 이상 20세 이하 자녀 수', type: 'int', def: '0' },
+      { k: 'ntx', label: '비과세액 (월 · 식대 등)', type: 'num', ph: '예: 200,000', span2: true },
+    ],
+    compute: function (v) {
+      var amt = toNum(v.amt);
+      if (amt == null || amt <= 0) return null;
+      var fam = Math.max(1, Math.min(11, Math.round(toNum(v.fam) || 1)));
+      var kid = Math.max(0, Math.min(fam - 1, Math.round(toNum(v.kid) || 0)));
+      var ntx = Math.max(0, Math.round(toNum(v.ntx) || 0));
+
+      var gross = v.basis === 'month'
+        ? Math.trunc(amt)
+        : Math.trunc(amt / (v.sev === 'within' ? 13 : 12));
+      var taxable = Math.max(0, gross - ntx);
+
+      var pBase = Math.floor(taxable / 1000) * 1000;
+      if (pBase > NP.pensionCap) pBase = NP.pensionCap;
+      if (taxable > 0 && pBase < NP.pensionFloor) pBase = NP.pensionFloor;
+
+      var pension = rate(pBase, NP.pensionPct);
+      var health = rate(taxable, NP.healthPct);
+      var care = rate(health, NP.carePct);
+      var emp = rate(taxable, NP.empPct);
+      var tax = withholdingTax(taxable, fam, kid);
+      var local = floor10(tax / 10);
+      var ded = pension + health + care + emp + tax + local;
+      var net = gross - ded;
+
+      var employer = pension + health + care + emp + rate(taxable, NP.stabilityPct);
+      var src = (window.CALHUB_TAX_2026 || {}).source || '';
+
+      return [
+        { label: '월 예상 실수령액', value: won(net), hero: true },
+        { label: '연 실수령액', value: won(net * 12) },
+        { label: '세전 월 급여', value: won(gross) },
+        { label: '국민연금 (4.75%)', value: won(pension) },
+        { label: '건강보험 (3.595%)', value: won(health) },
+        { label: '장기요양보험 (건강보험료의 13.14%)', value: won(care) },
+        { label: '고용보험 (0.9%)', value: won(emp) },
+        { label: '근로소득세 (간이세액표)', value: won(tax) },
+        { label: '지방소득세 (소득세의 10%)', value: won(local) },
+        { label: '공제액 합계 (월)', value: won(ded) },
+        { label: '회사 부담액 (월 · 산재 제외)', value: won(employer), dim: true },
+        { label: '기준', value: '2026년 요율 · ' + src, dim: true },
+      ];
+    },
+  };
+
   /* 연비 */
   WIDGETS.fuel = {
     fields: [
