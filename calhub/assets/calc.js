@@ -59,6 +59,8 @@
    *   ⚠️ **필드 순서 = 열 배치**다. 서로 대응하는 줄(보유/추가 매수, 첫 분수/둘째 분수,
    *   상품 A/B)은 **같은 열에 같은 성격의 값**이 오도록 순서를 맞춘다 — 1열이 단가인데
    *   아랫줄 1열이 수량이면 눈이 열을 따라 읽지 못한다 (2026-08-12 사용자 지적).
+   *   f.showIf(v): 있으면 그 값이 참일 때만 칸이 보인다 — 방식에 따라만 쓰이는
+   *   칸(대출 체증률)을 늘 띄워 두면 나머지 사용자에게는 뜻 모를 잡음이 된다.
    * spec.cols: 열 수 (기본 2). 분수처럼 한 묶음이 세 칸인 경우 3.
    * spec.compute(v): null(입력 부족) 또는 [{label, value, hero, dim}] 행 목록
    * spec.custom(host, api): 완전 커스텀 위젯이면 이걸 대신 정의
@@ -71,9 +73,11 @@
     var form = el('div', 'cw-form' + (spec.cols === 3 ? ' cw-cols-3' : ''));
     var result = el('div', 'cw-result');
     var labelEls = {};
+    var wrapEls = {};
 
     spec.fields.forEach(function (f) {
       var wrap = el('label', 'cw-field' + (f.span2 ? ' cw-span2' : ''));
+      wrapEls[f.k] = wrap;
       var lab = el('span', 'cw-label', typeof f.label === 'function' ? f.label(values) : f.label);
       labelEls[f.k] = { el: lab, def: f.label };
       wrap.appendChild(lab);
@@ -124,8 +128,11 @@
     function refreshLabels() {
       spec.fields.forEach(function (f) {
         if (typeof f.label === 'function') labelEls[f.k].el.textContent = f.label(values);
+        if (f.showIf) wrapEls[f.k].style.display = f.showIf(values) ? '' : 'none';
       });
     }
+    // 첫 그림에도 적용해야 한다 — 안 그러면 조건부 칸이 잠깐 떴다 사라진다.
+    refreshLabels();
 
     function update() {
       var rows = null;
@@ -159,14 +166,21 @@
     });
   }
 
-  /* ── 대출 엔진 (회차별 원화 반올림 + 마지막 회차 잔액 보정) ── */
-  function computeLoan(P, annualPct, months, grace, method) {
+  /* ── 대출 엔진 (회차별 원화 반올림 + 마지막 회차 잔액 보정) ──
+   *
+   * 앱(`core/calc/loan_calc.dart`)과 **같은 규칙**이다. 앱은 정확 유리수로
+   * 누적하고 여기는 배정도 실수라 아주 긴 기간에서 몇 원이 갈릴 수 있지만,
+   * 기준 케이스는 원 단위까지 일치하는지 확인하고 넣는다.
+   *
+   * [gradPct]는 체증식 전용 — 대출 원금 대비 **매월 상환금 증가액**의 비율(%).
+   */
+  function computeLoan(P, annualPct, months, grace, method, gradPct) {
     var i = annualPct / 100 / 12;
     var n = months - grace;
     if (P <= 0 || months <= 0 || n <= 0 || annualPct < 0 || months > 1200) return null;
     var totalInterest = 0, bal = P, k;
     for (k = 0; k < grace; k++) totalInterest += roundWon(bal * i);
-    var firstPay = null, monthly = null;
+    var firstPay = null, monthly = null, stepUp = null, lastPay = null;
     if (method === 'annuity') {
       var A = i === 0 ? P / n : P * i / (1 - Math.pow(1 + i, -n));
       monthly = roundWon(A);
@@ -186,6 +200,23 @@
         if (k === 1) firstPay = pr2 + it2;
         bal -= pr2;
       }
+    } else if (method === 'graduated') {
+      // 체증식 — 첫 상환금이 이자와 같아 납입원금 0에서 출발하고, 이후 매 회차
+      // **정액**(원금 × 체증률)씩 늘어난다. 체증률은 완전상환을 위해 역산되는
+      // 값이 아니라서 **만기에 잔액이 남고**, 마지막 회차가 그것을 일시 상환한다.
+      var g = (gradPct == null ? 0.0008 : gradPct) / 100;
+      if (g < 0) return null;
+      var base = roundWon(P * i);
+      stepUp = roundWon(P * g);
+      for (k = 1; k <= n; k++) {
+        var it3 = roundWon(bal * i);
+        var pay3 = (k === n) ? bal + it3 : base + stepUp * (k - 1);
+        var pr3 = (k === n) ? bal : pay3 - it3;
+        totalInterest += it3;
+        if (k === 1) firstPay = pay3;
+        if (k === n) lastPay = pay3;
+        bal -= pr3;
+      }
     } else { // bullet 만기일시
       var mi = roundWon(P * i);
       totalInterest += mi * n;
@@ -194,6 +225,8 @@
     return {
       firstPay: firstPay,
       monthly: monthly,
+      stepUp: stepUp,
+      lastPay: lastPay,
       totalInterest: totalInterest,
       totalPay: P + totalInterest,
     };
@@ -493,22 +526,35 @@
     fields: [
       { k: 'p', label: '대출 원금 (원)', type: 'num', ph: '예: 350,000,000', span2: true },
       { k: 'r', label: '연이율 (%)', type: 'num', ph: '예: 1.7' },
-      { k: 'm', label: '상환 방식', type: 'sel', def: 'annuity', opts: [['annuity', '원리금균등'], ['principal', '원금균등'], ['bullet', '만기일시']] },
+      { k: 'm', label: '상환 방식', type: 'sel', def: 'annuity', opts: [['annuity', '원리금균등'], ['principal', '원금균등'], ['bullet', '만기일시'], ['graduated', '체증식']] },
       { k: 'n', label: '기간 (개월)', type: 'num', ph: '예: 360' },
       { k: 'g', label: '거치기간 (개월)', type: 'num', ph: '0' },
+      // 체증식에서만 보인다 — 다른 방식에서는 계산에 쓰이지도 않는 칸이다.
+      {
+        k: 'gr', label: '체증률 (%)', type: 'num', def: '0.0008', span2: true,
+        showIf: function (v) { return v.m === 'graduated'; },
+      },
     ],
     compute: function (v) {
       var P = toNum(v.p), r = toNum(v.r), n = toInt(v.n), g = toInt(v.g) || 0;
       if (P == null || r == null || n == null) return null;
-      var out = computeLoan(P, r, n, g, v.m);
+      var grad = v.m === 'graduated' ? toNum(v.gr) : null;
+      var out = computeLoan(P, r, n, g, v.m, grad);
       if (!out) return null;
-      var heroLabel = v.m === 'annuity' ? '월 상환액' : v.m === 'principal' ? '1회차 상환액' : '월 이자';
-      return [
+      var heroLabel = v.m === 'annuity' ? '월 상환액' : v.m === 'bullet' ? '월 이자' : '1회차 상환액';
+      var rows = [
         { label: heroLabel, value: won(out.firstPay), hero: true },
-        { label: '총 이자', value: won(out.totalInterest) },
-        { label: '총 상환액', value: won(out.totalPay) },
-        { label: '대출 원금', value: won(P), dim: true },
       ];
+      if (v.m === 'graduated') {
+        // 체증식은 회차마다 금액이 달라 히어로 하나로는 상환 계획을 알 수 없다.
+        // **만기에 한 번에 갚는 금액**을 빼면 특히 그렇다 — 앱과 같은 규칙.
+        rows.push({ label: '매월 상환액 증가', value: '+' + won(out.stepUp) });
+        rows.push({ label: '만기 일시상환액 (' + n + '회차)', value: won(out.lastPay) });
+      }
+      rows.push({ label: '총 이자', value: won(out.totalInterest) });
+      rows.push({ label: '총 상환액', value: won(out.totalPay) });
+      rows.push({ label: '대출 원금', value: won(P), dim: true });
+      return rows;
     },
   };
 
