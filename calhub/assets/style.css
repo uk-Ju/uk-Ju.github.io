@@ -12,6 +12,10 @@
   --kakao: #fee500;
   --radius: 14px;
   --maxw: 1320px;
+  /* 이 사이트는 다크 고정이다 — 브라우저에게 그렇다고 알려 줘야 셀렉트
+   * 드롭다운·스크롤바 같은 **네이티브 UI가 어두운 톤으로** 그려진다.
+   * 없으면 드롭다운 팝업이 흰 배경으로 뜨고 밝은 글자가 묻힌다. */
+  color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -128,6 +132,9 @@ img { max-width: 100%; }
   transition: border-color .12s ease, background-color .12s ease;
 }
 .cw-field select { font-weight: 600; }
+/* 드롭다운 팝업은 OS가 그리므로 색을 **직접** 지정한다 — 셀렉트를 투명으로
+ * 두면 option이 흰 배경 위에 밝은 글자로 떠서 안 읽힌다(2026-08-19 신고). */
+.cw-field select option { background: var(--panel); color: var(--text); font-weight: 600; }
 .cw-field input:focus, .cw-field select:focus {
   border-bottom: 2px solid var(--accent);
   background: rgba(108, 123, 255, .07);
