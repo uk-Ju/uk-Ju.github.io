@@ -53,9 +53,40 @@
     return e;
   }
 
+  /* ── 빠른입력 프리셋 ───────────────────────────────────────
+   *
+   * 앱의 `shared_ui/quick_input_row.dart`와 **같은 구성·같은 순서**다
+   * (좌→우로 커지는 순 — 2026-07-27 사용자 지시). 웹에서 숫자를 일일이
+   * 타이핑하게 두면 "3억 5천만"을 넣는 데만 아홉 번을 눌러야 한다.
+   *
+   * 앱은 탭=더하기 / 길게 누르기=대체지만, 웹은 길게 누르기가 모바일
+   * 브라우저의 텍스트 선택·컨텍스트 메뉴와 겹쳐서 **탭=더하기만** 둔다.
+   * 대체가 필요하면 지우개(⌫)로 비우고 다시 누르면 된다.
+   */
+  var QUICK_PRESETS = {
+    principal: [['+100만', 1e6], ['+1000만', 1e7], ['+1억', 1e8]],
+    monthly: [['+1만', 1e4], ['+5만', 5e4], ['+10만', 1e5]],
+    mid: [['+10만', 1e5], ['+100만', 1e6], ['+1000만', 1e7]],
+    months: [['+1월', 1], ['+1년', 12], ['+10년', 120]],
+    qty: [['−1', -1], ['+1', 1], ['+10', 10]],
+    rate: [['+0.1', 0.1], ['+0.5', 0.5], ['+1', 1]],
+  };
+
+  /* 부동소수 누적 방지 — 0.1을 세 번 더해도 0.30000000000000004가 되지
+   * 않게 소수 자릿수를 맞춰 끊는다(이율 프리셋에서 실제로 보인다). */
+  function addQuick(cur, delta) {
+    var base = toNum(cur) || 0;
+    var dec = String(delta).indexOf('.');
+    dec = dec === -1 ? 0 : String(delta).length - dec - 1;
+    var next = base + delta;
+    if (next < 0) next = 0;              // 수량 −1이 음수로 내려가지 않게
+    return dec ? Number(next.toFixed(dec)) : next;
+  }
+
   /* ── 공용 렌더러 ───────────────────────────────────────────
    * spec.fields: [{k, label(문자열 또는 v=>문자열), type:'num'|'int'|'sel'|'date'|'time'|'chk',
-   *               opts:[[값,라벨]], def, ph, suffix, span2}]
+   *               opts:[[값,라벨]], def, ph, suffix, span2,
+   *               quick:'principal'|'monthly'|'mid'|'months'|'qty'|'rate'}]
    *   ⚠️ **필드 순서 = 열 배치**다. 서로 대응하는 줄(보유/추가 매수, 첫 분수/둘째 분수,
    *   상품 A/B)은 **같은 열에 같은 성격의 값**이 오도록 순서를 맞춘다 — 1열이 단가인데
    *   아랫줄 1열이 수량이면 눈이 열을 따라 읽지 못한다 (2026-08-12 사용자 지적).
@@ -122,6 +153,42 @@
       }
       wrap.appendChild(input);
       if (f.suffix) wrap.appendChild(el('span', 'cw-suffix', f.suffix));
+
+      // 빠른입력 줄 — 입력 칸 **바로 아래**에 붙는다(앱과 같은 배치).
+      var presets = f.quick && QUICK_PRESETS[f.quick];
+      if (presets) {
+        var quickRow = el('div', 'cw-quick');
+        presets.forEach(function (p) {
+          var b = el('button', 'cw-quick-btn', p[0]);
+          b.type = 'button';
+          // <label> 안이라 기본 동작을 막지 않으면 탭이 입력 칸 포커스로
+          // 넘어가 모바일에서 키보드가 결과를 덮는다.
+          b.addEventListener('click', function (e) {
+            e.preventDefault();
+            var next = String(addQuick(values[f.k], p[1]));
+            values[f.k] = f.comma === false ? next : commaize(next);
+            input.value = values[f.k];
+            refreshLabels();
+            update();
+          });
+          quickRow.appendChild(b);
+        });
+        // 지우개 — 그 칸만 비운다. 대체 입력의 출발점이다.
+        var clr = el('button', 'cw-quick-btn cw-quick-clear', '⌫');
+        clr.type = 'button';
+        clr.title = '이 칸만 지우기';
+        clr.setAttribute('aria-label', '이 칸만 지우기');
+        clr.addEventListener('click', function (e) {
+          e.preventDefault();
+          values[f.k] = '';
+          input.value = '';
+          refreshLabels();
+          update();
+        });
+        quickRow.appendChild(clr);
+        wrap.appendChild(quickRow);
+      }
+
       form.appendChild(wrap);
     });
 
@@ -418,10 +485,10 @@
   /* 물타기 — 1열 = 단가, 2열 = 수량 (보유 줄과 추가 매수 줄이 열로 대응한다) */
   WIDGETS.single = {
     fields: [
-      { k: 'avg', label: '보유 평균 단가', type: 'num', ph: '예: 50,000' },
-      { k: 'qty', label: '보유 수량', type: 'num', ph: '예: 100' },
-      { k: 'price', label: '추가 매수 단가', type: 'num', ph: '예: 40,000' },
-      { k: 'add', label: '추가 매수 수량', type: 'num', ph: '예: 100' },
+      { k: 'avg', label: '보유 평균 단가', type: 'num', ph: '예: 50,000', quick: 'mid' },
+      { k: 'qty', label: '보유 수량', type: 'num', ph: '예: 100', quick: 'qty' },
+      { k: 'price', label: '추가 매수 단가', type: 'num', ph: '예: 40,000', quick: 'mid' },
+      { k: 'add', label: '추가 매수 수량', type: 'num', ph: '예: 100', quick: 'qty' },
     ],
     compute: function (v) {
       var q = toNum(v.qty), a = toNum(v.avg), p = toNum(v.price), add = toNum(v.add);
@@ -453,7 +520,9 @@
       var stageBox = el('div', 'cw-stages cw-span2');
       var result = el('div', 'cw-result');
 
-      function numField(label, obj, key, ph) {
+      /* [quick]는 시작 보유 두 칸에만 준다 — 차수는 최대 30줄이라
+       * 줄마다 버튼 넉 장을 깔면 표가 버튼밭이 된다. */
+      function numField(label, obj, key, ph, quick) {
         var wrap = el('label', 'cw-field');
         wrap.appendChild(el('span', 'cw-label', label));
         var input = document.createElement('input');
@@ -466,6 +535,31 @@
           update();
         });
         wrap.appendChild(input);
+        var presets = quick && QUICK_PRESETS[quick];
+        if (presets) {
+          var qrow = el('div', 'cw-quick');
+          presets.forEach(function (p) {
+            var b = el('button', 'cw-quick-btn', p[0]);
+            b.type = 'button';
+            b.addEventListener('click', function (e) {
+              e.preventDefault();
+              obj[key] = commaize(String(addQuick(obj[key], p[1])));
+              input.value = obj[key];
+              update();
+            });
+            qrow.appendChild(b);
+          });
+          var clr = el('button', 'cw-quick-btn cw-quick-clear', '⌫');
+          clr.type = 'button';
+          clr.title = '이 칸만 지우기';
+          clr.setAttribute('aria-label', '이 칸만 지우기');
+          clr.addEventListener('click', function (e) {
+            e.preventDefault();
+            obj[key] = ''; input.value = ''; update();
+          });
+          qrow.appendChild(clr);
+          wrap.appendChild(qrow);
+        }
         return wrap;
       }
 
@@ -511,8 +605,8 @@
         renderRows(result, rows);
       }
 
-      form.appendChild(numField('시작 평균 단가', start, 'price', '예: 10,000'));
-      form.appendChild(numField('시작 수량', start, 'qty', '예: 10'));
+      form.appendChild(numField('시작 평균 단가', start, 'price', '예: 10,000', 'mid'));
+      form.appendChild(numField('시작 수량', start, 'qty', '예: 10', 'qty'));
       form.appendChild(stageBox);
       rebuildStages();
       host.appendChild(form);
@@ -524,11 +618,11 @@
   /* 대출 — 2행은 개월 칸끼리(기간·거치기간) 나란히 둔다 */
   WIDGETS.loan = {
     fields: [
-      { k: 'p', label: '대출 원금 (원)', type: 'num', ph: '예: 350,000,000', span2: true },
-      { k: 'r', label: '연이율 (%)', type: 'num', ph: '예: 1.7' },
+      { k: 'p', label: '대출 원금 (원)', type: 'num', ph: '예: 350,000,000', span2: true, quick: 'principal' },
+      { k: 'r', label: '연이율 (%)', type: 'num', ph: '예: 1.7', quick: 'rate' },
       { k: 'm', label: '상환 방식', type: 'sel', def: 'annuity', opts: [['annuity', '원리금균등'], ['principal', '원금균등'], ['bullet', '만기일시'], ['graduated', '체증식']] },
-      { k: 'n', label: '기간 (개월)', type: 'num', ph: '예: 360' },
-      { k: 'g', label: '거치기간 (개월)', type: 'num', ph: '0' },
+      { k: 'n', label: '기간 (개월)', type: 'num', ph: '예: 360', quick: 'months' },
+      { k: 'g', label: '거치기간 (개월)', type: 'num', ph: '0', quick: 'months' },
       // 체증식에서만 보인다 — 다른 방식에서는 계산에 쓰이지도 않는 칸이다.
       {
         k: 'gr', label: '체증률 (%)', type: 'num', def: '0.0008', span2: true,
@@ -590,9 +684,9 @@
   var METHOD_OPTS = [['simple', '단리'], ['compound', '월복리']];
   WIDGETS.deposit = {
     fields: [
-      { k: 'p', label: '예치 금액 (원)', type: 'num', ph: '예: 10,000,000', span2: true },
-      { k: 'r', label: '연이율 (%)', type: 'num', ph: '예: 3.5' },
-      { k: 'n', label: '기간 (개월)', type: 'num', ph: '예: 12' },
+      { k: 'p', label: '예치 금액 (원)', type: 'num', ph: '예: 10,000,000', span2: true, quick: 'principal' },
+      { k: 'r', label: '연이율 (%)', type: 'num', ph: '예: 3.5', quick: 'rate' },
+      { k: 'n', label: '기간 (개월)', type: 'num', ph: '예: 12', quick: 'months' },
       { k: 'm', label: '이자 방식', type: 'sel', def: 'simple', opts: METHOD_OPTS },
       { k: 't', label: '과세', type: 'sel', def: '15.4', opts: TAX_OPTS },
     ],
@@ -600,9 +694,9 @@
   };
   WIDGETS.savings = {
     fields: [
-      { k: 'p', label: '월 납입액 (원)', type: 'num', ph: '예: 500,000', span2: true },
-      { k: 'r', label: '연이율 (%)', type: 'num', ph: '예: 4.0' },
-      { k: 'n', label: '기간 (개월)', type: 'num', ph: '예: 12' },
+      { k: 'p', label: '월 납입액 (원)', type: 'num', ph: '예: 500,000', span2: true, quick: 'monthly' },
+      { k: 'r', label: '연이율 (%)', type: 'num', ph: '예: 4.0', quick: 'rate' },
+      { k: 'n', label: '기간 (개월)', type: 'num', ph: '예: 12', quick: 'months' },
       { k: 'm', label: '이자 방식', type: 'sel', def: 'simple', opts: METHOD_OPTS },
       { k: 't', label: '과세', type: 'sel', def: '15.4', opts: TAX_OPTS },
     ],
@@ -612,10 +706,10 @@
   /* 자동차 대출 — 금액 줄 / 숫자 줄 / 선택 줄로 성격을 맞춘다 */
   WIDGETS.car_loan = {
     fields: [
-      { k: 'price', label: '차량 가격 (원)', type: 'num', ph: '예: 30,000,000' },
-      { k: 'down', label: '선수금 (원)', type: 'num', ph: '0' },
-      { k: 'r', label: '할부 연이율 (%)', type: 'num', ph: '예: 5.5' },
-      { k: 'n', label: '할부 기간 (개월)', type: 'num', ph: '예: 36' },
+      { k: 'price', label: '차량 가격 (원)', type: 'num', ph: '예: 30,000,000', quick: 'principal' },
+      { k: 'down', label: '선수금 (원)', type: 'num', ph: '0', quick: 'mid' },
+      { k: 'r', label: '할부 연이율 (%)', type: 'num', ph: '예: 5.5', quick: 'rate' },
+      { k: 'n', label: '할부 기간 (개월)', type: 'num', ph: '예: 36', quick: 'months' },
       { k: 'car', label: '차종 (취득세)', type: 'sel', def: '7', span2: true, opts: [['7', '승용 7%'], ['4', '경차 4%'], ['5', '승합·화물 5%']] },
     ],
     compute: function (v) {
@@ -640,7 +734,7 @@
   WIDGETS.wage = {
     fields: [
       { k: 'unit', label: '기준 단위', type: 'sel', def: 'hour', opts: [['hour', '시급'], ['month', '월급'], ['year', '연봉']] },
-      { k: 'amt', label: function (v) { return ({ hour: '시급', month: '월급', year: '연봉' })[v.unit] + ' (원)'; }, type: 'num', ph: '예: 10,320' },
+      { k: 'amt', label: function (v) { return ({ hour: '시급', month: '월급', year: '연봉' })[v.unit] + ' (원)'; }, type: 'num', ph: '예: 10,320', quick: 'monthly' },
       { k: 'week', label: '주 소정근로시간', type: 'num', def: '40' },
       { k: 'day', label: '하루 근로시간', type: 'num', def: '8' },
     ],
@@ -722,10 +816,10 @@
     fields: [
       { k: 'basis', label: '급여 기준', type: 'sel', def: 'year', opts: [['year', '연봉'], ['month', '월급']] },
       { k: 'sev', label: '퇴직금', type: 'sel', def: 'apart', opts: [['apart', '별도'], ['within', '포함 (÷13)']], showIf: function (v) { return v.basis === 'year'; } },
-      { k: 'amt', label: function (v) { return (v.basis === 'month' ? '월급' : '연봉') + ' (원)'; }, type: 'num', ph: '예: 50,000,000', span2: true },
+      { k: 'amt', label: function (v) { return (v.basis === 'month' ? '월급' : '연봉') + ' (원)'; }, type: 'num', ph: '예: 50,000,000', span2: true, quick: 'principal' },
       { k: 'fam', label: '부양 가족 수 (본인 포함)', type: 'int', def: '1' },
       { k: 'kid', label: '8세 이상 20세 이하 자녀 수', type: 'int', def: '0' },
-      { k: 'ntx', label: '비과세액 (월 · 식대 등)', type: 'num', ph: '예: 200,000', span2: true },
+      { k: 'ntx', label: '비과세액 (월 · 식대 등)', type: 'num', ph: '예: 200,000', span2: true, quick: 'monthly' },
     ],
     compute: function (v) {
       var amt = toNum(v.amt);
@@ -845,7 +939,7 @@
   /* 할인 */
   WIDGETS.discount = {
     fields: [
-      { k: 'price', label: '원래 가격 (원)', type: 'num', ph: '예: 59,000', span2: true },
+      { k: 'price', label: '원래 가격 (원)', type: 'num', ph: '예: 59,000', span2: true, quick: 'mid' },
       { k: 'r1', label: '할인율 (%)', type: 'num', ph: '예: 20' },
       { k: 'r2', label: '추가 할인율 (%, 선택)', type: 'num', ph: '예: 10' },
     ],
