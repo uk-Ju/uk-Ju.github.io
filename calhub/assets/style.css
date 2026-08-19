@@ -178,6 +178,47 @@ img { max-width: 100%; }
 .cw-row-label { color: var(--text-dim); flex-shrink: 1; }
 .cw-row-value { font-weight: 700; text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
 .cw-dim { opacity: .65; }
+
+/* ── 회차별 상세 표 ──────────────────────────
+ * 기본은 접힘 — 요약을 보러 온 사람에게 360줄을 먼저 들이밀지 않는다. */
+.cw-detail-host { margin-top: 12px; }
+.cw-detail { border: 1px solid var(--line); border-radius: 12px; background: var(--bg-soft); }
+.cw-detail-sum {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  padding: 12px 14px; cursor: pointer; font-size: .92rem; font-weight: 700;
+  color: var(--text); list-style: none;
+}
+.cw-detail-sum::-webkit-details-marker { display: none; }
+.cw-detail-sum::before {
+  content: "▸"; color: var(--accent); font-size: .9rem;
+  transition: transform .15s ease; display: inline-block;
+}
+.cw-detail[open] .cw-detail-sum::before { transform: rotate(90deg); }
+.cw-detail-sum > span:first-of-type { flex: 1; }
+.cw-detail-count { font-size: .8rem; font-weight: 600; color: var(--text-dim); }
+/* 표가 넓어도 페이지가 좌우로 밀리지 않게 — 표 안에서만 스크롤한다. */
+.cw-detail-scroll { overflow-x: auto; border-top: 1px solid var(--line); }
+.cw-table { width: 100%; border-collapse: collapse; font-size: .86rem; white-space: nowrap; }
+.cw-table th, .cw-table td { padding: 8px 12px; border-bottom: 1px solid var(--line); }
+.cw-table th {
+  position: sticky; top: 0; background: var(--panel-2); color: var(--text-dim);
+  font-size: .78rem; font-weight: 700; text-align: left;
+}
+.cw-table td { color: var(--text); }
+.cw-table .cw-num { text-align: right; font-variant-numeric: tabular-nums; }
+.cw-table tbody tr:last-child td { border-bottom: none; }
+.cw-table tbody tr.cw-dim td { color: var(--text-dim); }
+.cw-detail-more {
+  display: block; width: 100%; padding: 11px; background: transparent;
+  border: none; border-top: 1px solid var(--line);
+  color: var(--accent); font-size: .86rem; font-weight: 700; font-family: inherit;
+  cursor: pointer;
+}
+.cw-detail-more:hover { background: var(--panel); }
+.cw-detail-note {
+  margin: 0; padding: 11px 14px; border-top: 1px solid var(--line);
+  font-size: .8rem; line-height: 1.6; color: var(--text-dim);
+}
 .cw-fx-note { font-size: .78rem; color: var(--text-dim); margin: 10px 0 0; }
 /* 다중 물타기·학점 — 행 추가형 */
 .cw-stages { display: flex; flex-direction: column; gap: 10px; }

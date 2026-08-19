@@ -205,10 +205,18 @@
       var rows = null;
       try { rows = spec.compute(values); } catch (e) { rows = null; }
       renderRows(result, rows, spec.empty);
+      if (spec.detail) {
+        var d = null;
+        // 상세 표가 터져도 요약은 살아 있어야 한다 — 여기서만 삼킨다.
+        try { d = rows ? spec.detail(values) : null; } catch (e2) { d = null; }
+        renderDetail(detail, d);
+      }
     }
 
     host.appendChild(form);
     host.appendChild(result);
+    var detail = el('div', 'cw-detail-host');
+    if (spec.detail) host.appendChild(detail);
     update();
   }
 
@@ -233,6 +241,79 @@
     });
   }
 
+  /* ── 접히는 상세 표 ────────────────────────────────────────
+   *
+   * spec.detail(values) → null 또는
+   *   {title, columns:[{label, align}], rows:[[셀…]], note, open}
+   *
+   * **기본은 접힘**이다(앱의 상환 스케줄과 같은 규칙) — 요약을 보러 온
+   * 사람에게 360줄을 먼저 들이밀지 않는다. 긴 표는 처음 [CHUNK]회차만
+   * 그리고 [더 보기]로 잇는다(1200회차를 한 번에 그리면 입력할 때마다
+   * 수천 개 셀이 다시 만들어져 화면이 버벅인다).
+   */
+  var DETAIL_CHUNK = 120;
+
+  function renderDetail(container, d) {
+    container.innerHTML = '';
+    if (!d || !d.rows || !d.rows.length) { container.style.display = 'none'; return; }
+    container.style.display = '';
+
+    var box = el('details', 'cw-detail');
+    if (d.open) box.open = true;
+    var sum = el('summary', 'cw-detail-sum');
+    sum.appendChild(el('span', null, d.title || '상세 내역'));
+    sum.appendChild(el('span', 'cw-detail-count', d.rows.length.toLocaleString('ko-KR') + '회차'));
+    box.appendChild(sum);
+
+    var scroller = el('div', 'cw-detail-scroll');
+    var table = el('table', 'cw-table');
+    var thead = el('thead');
+    var htr = el('tr');
+    d.columns.forEach(function (c) {
+      var th = el('th', c.align === 'right' ? 'cw-num' : null, c.label);
+      htr.appendChild(th);
+    });
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    var tbody = el('tbody');
+    table.appendChild(tbody);
+    scroller.appendChild(table);
+    box.appendChild(scroller);
+
+    var shown = 0;
+    var more = el('button', 'cw-detail-more');
+    more.type = 'button';
+
+    function draw() {
+      var to = Math.min(shown + DETAIL_CHUNK, d.rows.length);
+      var frag = document.createDocumentFragment();
+      for (var r = shown; r < to; r++) {
+        var row = d.rows[r];
+        var tr = el('tr', row.cls || null);
+        for (var c = 0; c < d.columns.length; c++) {
+          var td = el('td', d.columns[c].align === 'right' ? 'cw-num' : null,
+            (row.cells || row)[c]);
+          tr.appendChild(td);
+        }
+        frag.appendChild(tr);
+      }
+      tbody.appendChild(frag);
+      shown = to;
+      if (shown >= d.rows.length) {
+        more.style.display = 'none';
+      } else {
+        more.style.display = '';
+        more.textContent = '더 보기 (' + shown.toLocaleString('ko-KR') + ' / '
+          + d.rows.length.toLocaleString('ko-KR') + '회차)';
+      }
+    }
+    more.addEventListener('click', function (e) { e.preventDefault(); draw(); });
+    draw();
+    box.appendChild(more);
+    if (d.note) box.appendChild(el('p', 'cw-detail-note', d.note));
+    container.appendChild(box);
+  }
+
   /* ── 대출 엔진 (회차별 원화 반올림 + 마지막 회차 잔액 보정) ──
    *
    * 앱(`core/calc/loan_calc.dart`)과 **같은 규칙**이다. 앱은 정확 유리수로
@@ -246,7 +327,20 @@
     var n = months - grace;
     if (P <= 0 || months <= 0 || n <= 0 || annualPct < 0 || months > 1200) return null;
     var totalInterest = 0, bal = P, k;
-    for (k = 0; k < grace; k++) totalInterest += roundWon(bal * i);
+    // [schedule] 회차별 내역 — 합계와 **같은 루프**에서 모은다. 표를 위해
+    // 다시 계산하면 합계와 표가 갈라질 수 있다(앱 §7-4-33의 풀이 규칙과 같은 이유).
+    var schedule = [];
+    function push(no, pay, interest, principal, grace) {
+      schedule.push({
+        no: no, pay: pay, interest: interest,
+        principal: principal, balance: bal, grace: !!grace,
+      });
+    }
+    for (k = 1; k <= grace; k++) {
+      var gi = roundWon(bal * i);
+      totalInterest += gi;
+      push(k, gi, gi, 0, true);   // 거치 중엔 이자만 — 잔액이 줄지 않는다
+    }
     var firstPay = null, monthly = null, stepUp = null, lastPay = null;
     if (method === 'annuity') {
       var A = i === 0 ? P / n : P * i / (1 - Math.pow(1 + i, -n));
@@ -256,6 +350,7 @@
         var pr = (k === n) ? bal : monthly - it;
         totalInterest += it;
         bal -= pr;
+        push(grace + k, it + pr, it, pr);
       }
       firstPay = monthly;
     } else if (method === 'principal') {
@@ -266,6 +361,7 @@
         totalInterest += it2;
         if (k === 1) firstPay = pr2 + it2;
         bal -= pr2;
+        push(grace + k, it2 + pr2, it2, pr2);
       }
     } else if (method === 'graduated') {
       // 체증식 — 첫 상환금이 이자와 같아 납입원금 0에서 출발하고, 이후 매 회차
@@ -283,11 +379,18 @@
         if (k === 1) firstPay = pay3;
         if (k === n) lastPay = pay3;
         bal -= pr3;
+        push(grace + k, pay3, it3, pr3);
       }
     } else { // bullet 만기일시
       var mi = roundWon(P * i);
       totalInterest += mi * n;
       firstPay = mi;
+      for (k = 1; k <= n; k++) {
+        // 원금은 만기에 한 번에 — 마지막 회차만 잔액이 0으로 떨어진다.
+        var isLast = k === n;
+        if (isLast) bal = 0;
+        push(grace + k, isLast ? mi + P : mi, mi, isLast ? P : 0);
+      }
     }
     return {
       firstPay: firstPay,
@@ -296,6 +399,7 @@
       lastPay: lastPay,
       totalInterest: totalInterest,
       totalPay: P + totalInterest,
+      schedule: schedule,
     };
   }
 
@@ -650,6 +754,40 @@
       rows.push({ label: '대출 원금', value: won(P), dim: true });
       return rows;
     },
+    detail: function (v) {
+      var P = toNum(v.p), r = toNum(v.r), n = toInt(v.n), g = toInt(v.g) || 0;
+      if (P == null || r == null || n == null) return null;
+      var grad = v.m === 'graduated' ? toNum(v.gr) : null;
+      var out = computeLoan(P, r, n, g, v.m, grad);
+      if (!out) return null;
+      var note = '회차마다 원 단위로 반올림하므로 **마지막 회차 금액이 다른 것이 정상**입니다'
+        + ' — 은행 상환표와 같은 방식입니다.';
+      if (g > 0) note = '거치기간 ' + g + '회차 동안은 이자만 내고 원금이 줄지 않습니다. ' + note;
+      if (v.m === 'graduated') {
+        note = '체증률은 완전상환에 맞춰 정해진 값이 아니라 만기에 잔액이 남고,'
+          + ' 마지막 회차가 그것을 한 번에 갚습니다. ' + note;
+      }
+      return {
+        title: '회차별 상환 내역',
+        columns: [
+          { label: '회차' },
+          { label: '상환금', align: 'right' },
+          { label: '이자', align: 'right' },
+          { label: '원금', align: 'right' },
+          { label: '남은 원금', align: 'right' },
+        ],
+        rows: out.schedule.map(function (s) {
+          return {
+            cls: s.grace ? 'cw-dim' : null,
+            cells: [
+              s.no + (s.grace ? ' (거치)' : ''),
+              won(s.pay), won(s.interest), won(s.principal), won(s.balance),
+            ],
+          };
+        }),
+        note: note.replace(/\*\*/g, ''),
+      };
+    },
   };
 
   /* 예금 / 적금 공용 */
@@ -680,6 +818,49 @@
       ];
     };
   }
+
+  /* 예금·적금 월별 표 — 그 달까지 넣은 원금과 그때까지 붙은 세전 이자.
+   *
+   * **누적값은 요약과 같은 식을 회차 n에 그대로 적용**해서 구한다. 표를 위해
+   * 다른 식을 쓰면 마지막 줄이 요약과 안 맞는다(회귀가 그것을 검사한다). */
+  function depositDetail(isSavings) {
+    return function (v) {
+      var P = toNum(v.p), r = toNum(v.r), n = toInt(v.n);
+      if (P == null || r == null || n == null || P <= 0 || n <= 0 || n > 1200 || r < 0) return null;
+      var i = r / 100 / 12;
+      var taxRate = Number(v.t);
+      function preAt(k) {
+        if (isSavings) {
+          return v.m === 'compound'
+            ? (i === 0 ? 0 : P * (1 + i) * (Math.pow(1 + i, k) - 1) / i - P * k)
+            : P * i * k * (k + 1) / 2;
+        }
+        return v.m === 'compound' ? P * (Math.pow(1 + i, k) - 1) : P * (r / 100) * (k / 12);
+      }
+      var rows = [];
+      for (var k = 1; k <= n; k++) {
+        var principal = isSavings ? P * k : P;
+        var preW = floorWon(preAt(k));
+        var tax = floorWon(preW * taxRate / 100);
+        rows.push({
+          cells: [k, won(principal), won(preW), won(principal + preW - tax)],
+        });
+      }
+      return {
+        title: '월별 누적 내역',
+        columns: [
+          { label: '회차' },
+          { label: isSavings ? '누적 납입액' : '원금', align: 'right' },
+          { label: '누적 세전 이자', align: 'right' },
+          { label: '그때 해지 시 실수령', align: 'right' },
+        ],
+        rows: rows,
+        note: '이자는 원 단위로 절사합니다(예적금 관례). 마지막 줄이 만기 금액입니다.'
+          + ' 중도 해지하면 약정 이율이 아니라 중도해지 이율이 적용되므로 실제 금액은'
+          + ' 이 표보다 적을 수 있습니다.',
+      };
+    };
+  }
   var TAX_OPTS = [['15.4', '일반과세 15.4%'], ['9.5', '세금우대 9.5%'], ['0', '비과세']];
   var METHOD_OPTS = [['simple', '단리'], ['compound', '월복리']];
   WIDGETS.deposit = {
@@ -691,6 +872,7 @@
       { k: 't', label: '과세', type: 'sel', def: '15.4', opts: TAX_OPTS },
     ],
     compute: depositCompute(false),
+    detail: depositDetail(false),
   };
   WIDGETS.savings = {
     fields: [
@@ -701,6 +883,7 @@
       { k: 't', label: '과세', type: 'sel', def: '15.4', opts: TAX_OPTS },
     ],
     compute: depositCompute(true),
+    detail: depositDetail(true),
   };
 
   /* 자동차 대출 — 금액 줄 / 숫자 줄 / 선택 줄로 성격을 맞춘다 */
@@ -727,6 +910,29 @@
         { label: '취득세', value: won(acqTax) },
         { label: '총 구입 비용 (차량가+이자+취득세)', value: won(price + out.totalInterest + acqTax) },
       ];
+    },
+    detail: function (v) {
+      var price = toNum(v.price), down = toNum(v.down) || 0, r = toNum(v.r), n = toInt(v.n);
+      if (price == null || r == null || n == null || price <= 0) return null;
+      var financed = price - down;
+      if (financed <= 0) return null;   // 일시불이면 보여 줄 회차가 없다
+      var out = computeLoan(financed, r, n, 0, 'annuity');
+      if (!out) return null;
+      return {
+        title: '회차별 할부 내역',
+        columns: [
+          { label: '회차' },
+          { label: '할부금', align: 'right' },
+          { label: '이자', align: 'right' },
+          { label: '원금', align: 'right' },
+          { label: '남은 원금', align: 'right' },
+        ],
+        rows: out.schedule.map(function (s) {
+          return { cells: [s.no, won(s.pay), won(s.interest), won(s.principal), won(s.balance)] };
+        }),
+        note: '취득세·부대비용은 할부 원금에 넣지 않고 따로 계산합니다.'
+          + ' 회차마다 원 단위로 반올림하므로 마지막 회차 금액이 다른 것이 정상입니다.',
+      };
     },
   };
 
