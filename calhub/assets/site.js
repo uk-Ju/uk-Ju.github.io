@@ -308,10 +308,25 @@
   }
 
   /* ── 시작 ────────────────────────────────────────────────────────────── */
+  /* 계산기 전환 띠 — 지금 보고 있는 계산기를 보이는 자리로 밀어 준다.
+   *
+   * 띠는 카테고리 순서 그대로라, 뒤쪽 계산기(시간·소인수분해 등)를 보고
+   * 있으면 강조된 항목이 스크롤 밖에 숨어 "내가 어디 있는지"가 안 보인다.
+   * `scrollIntoView`를 쓰지 않는 이유는 그게 **세로 스크롤까지 건드려**
+   * 페이지가 제멋대로 내려가기 때문이다 — 가로 위치만 직접 계산한다. */
+  function initCalcSwitcher() {
+    var bar = document.querySelector('[data-calc-switcher] .cs-inner');
+    var cur = bar && bar.querySelector('[data-cs-current]');
+    if (!bar || !cur) return;
+    var target = cur.offsetLeft - (bar.clientWidth - cur.offsetWidth) / 2;
+    bar.scrollLeft = Math.max(0, target);
+  }
+
   function init() {
     initSearch();
     initAds();
     initShare();
+    initCalcSwitcher();
   }
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', init);

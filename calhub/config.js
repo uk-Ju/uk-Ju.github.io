@@ -38,7 +38,7 @@ window.CALHUB_CONFIG = {
     article: '',
   },
 
-  // 매체 '모든계산기 CalHub'(ddwoom.com/calhub) — 2026-08-13 등록, 08-14 승인
+  // 매체 '모든계산기 CalHub'(uk-ju.github.io/calhub) — 2026-08-13 등록, 08-14 승인
   // 자리가 늘면 여기에 ID를 더 넣는다. 빈 자리는 조용히 접히므로 개수가 안 맞아도 안전하다.
   adfitUnits: {
     rail: [

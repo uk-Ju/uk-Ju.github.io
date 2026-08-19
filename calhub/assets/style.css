@@ -12,6 +12,10 @@
   --kakao: #fee500;
   --radius: 14px;
   --maxw: 1320px;
+  /* 헤더 높이 — sticky가 둘(헤더·계산기 띠)이라 아래 것이 위 것 높이만큼
+   * 내려가 붙어야 한다. 같은 top:0을 주면 띠가 헤더 밑으로 숨는다.
+   * ⚠️ 헤더 padding·글자 크기를 바꾸면 이 값도 함께 맞출 것. */
+  --header-h: 62px;
   /* 이 사이트는 다크 고정이다 — 브라우저에게 그렇다고 알려 줘야 셀렉트
    * 드롭다운·스크롤바 같은 **네이티브 UI가 어두운 톤으로** 그려진다.
    * 없으면 드롭다운 팝업이 흰 배경으로 뜨고 밝은 글자가 묻힌다. */
@@ -108,6 +112,42 @@ img { max-width: 100%; }
   transition: border-color .12s ease, background .12s ease;
 }
 .quick-nav a:hover { border-color: var(--accent); background: var(--panel-2); }
+
+/* ── 계산기 전환 띠 ───────────────────────
+ * 헤더 바로 아래에 붙어 스크롤을 따라온다 — 어느 계산기를 보고 있든
+ * 다른 계산기가 항상 한 번의 탭 거리에 있다. */
+.calc-switcher {
+  position: sticky; top: var(--header-h); z-index: 40;
+  background: rgba(11, 14, 26, .92);
+  backdrop-filter: saturate(160%) blur(10px);
+  border-bottom: 1px solid var(--line);
+}
+.cs-inner {
+  max-width: var(--maxw); margin: 0 auto;
+  display: flex; gap: 6px; align-items: center;
+  padding: 9px 16px;
+  overflow-x: auto; scrollbar-width: none;
+  scroll-snap-type: x proximity;
+}
+.cs-inner::-webkit-scrollbar { display: none; }
+.cs-item {
+  flex: 0 0 auto; scroll-snap-align: center;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 7px 13px; border-radius: 999px;
+  background: var(--panel); border: 1px solid var(--line);
+  color: var(--text-dim); font-size: .84rem; font-weight: 600;
+  white-space: nowrap; text-decoration: none;
+  transition: color .12s ease, border-color .12s ease, background-color .12s ease;
+}
+.cs-item:hover { color: var(--text); border-color: var(--accent); }
+/* 지금 보고 있는 계산기 — 하나만 색을 가진다. */
+.cs-item.is-on {
+  background: var(--accent); border-color: var(--accent);
+  color: #fff; font-weight: 700;
+}
+.cs-emoji { font-size: .92rem; }
+.cs-home { font-weight: 700; color: var(--accent); }
+.cs-home:hover { background: var(--panel-2); }
 
 /* ── 웹 계산기 위젯 ───────────────────── */
 .calc-widget {
@@ -357,6 +397,8 @@ img { max-width: 100%; }
 }
 @media (max-width: 720px) {
   .header-cta { display: none; }
+  /* 헤더에서 [앱 다운로드] 버튼이 빠져 4px 낮아진다. */
+  :root { --header-h: 58px; }
   .cw-form { grid-template-columns: 1fr; }
   /* 분수는 좁은 화면에서도 3열을 유지한다 — 세로로 쌓으면 어느 칸이 한 분수인지 안 보인다.
      대신 여백·글자를 줄여 360dp에 들어가게 한다 */
