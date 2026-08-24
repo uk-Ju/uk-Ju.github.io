@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 
+Sitemap: https://ddwoom.com/sitemap.xml
 Sitemap: https://ddwoom.com/calhub/sitemap.xml
