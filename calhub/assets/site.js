@@ -191,7 +191,7 @@
     if (!used) return;
     var s = document.createElement('script');
     s.async = true;
-    s.src = 'https://t1.daumcdn.net/kas/static/ba.min.js';
+    s.src = 'https://t1.kakaocdn.net/kas/static/ba.min.js';
     document.head.appendChild(s);
   }
 
